@@ -1,0 +1,66 @@
+# ssh-guard configuration
+# Copy to /etc/ssh-guard/config.yaml or pass --config path/to/this/file
+# Every value can be overridden via SSHGUARD_<KEY>=value environment variable.
+
+# ── Log source ──────────────────────────────────────────────────────────────
+# Leave blank to auto-detect (/var/log/auth.log on Debian, /var/log/secure on RHEL)
+log_path:
+
+# ── Detection thresholds ────────────────────────────────────────────────────
+threshold_block:  15        # failures in window → automatic block
+threshold_alert:  8         # failures in window → warning alert only
+window_seconds:   600       # sliding window length (10 minutes)
+
+# ── Firewall backend ────────────────────────────────────────────────────────
+# "iptables"  — iptables -I INPUT -s <ip> -j DROP  (most Linux)
+# "ufw"       — ufw deny from <ip> to any          (Ubuntu with UFW)
+# "none"      — log only, never add rules           (safe for testing)
+firewall: iptables
+
+# Set to true to log what would happen without actually running iptables.
+# Same as passing --dry-run on the command line.
+dry_run: false
+
+# ── Persistence ─────────────────────────────────────────────────────────────
+# JSON database of blocked IPs — survives restarts.
+# ssh-guard will re-apply iptables rules on startup if blocks are loaded here.
+db_path: /var/lib/ssh-guard/blocks.json
+
+# ── Whitelist — NEVER block these IPs ───────────────────────────────────────
+# Supports individual IPs and CIDR ranges.
+# YOUR OWN IP AND INTERNAL NETWORK SHOULD ALWAYS BE HERE.
+whitelist:
+  - 127.0.0.1
+  - ::1
+  - 10.0.0.0/8
+  - 172.16.0.0/12
+  - 192.168.0.0/16
+  # Add your home/office IP or VPN range:
+  # - 203.0.113.42
+  # - 198.51.100.0/24
+
+# ── Blacklist — block on first connection ───────────────────────────────────
+# IPs here are blocked immediately without needing to hit the threshold.
+blacklist: []
+  # - 185.220.101.0/24   # known Tor exit range
+
+# ── Alerting ────────────────────────────────────────────────────────────────
+
+# Write alerts to syslog (visible in journald / /var/log/syslog)
+notify_syslog: true
+
+# Slack incoming webhook URL — leave blank to disable
+# Get one at: https://api.slack.com/messaging/webhooks
+notify_slack:
+  # url: https://hooks.slack.com/services/XXX/YYY/ZZZ
+
+# Email alerts via SMTP
+smtp_host:  localhost
+smtp_port:  25
+smtp_from:  sshguard@localhost
+smtp_to:                          # e.g. admin@example.com — blank = disabled
+
+# ── Logging ─────────────────────────────────────────────────────────────────
+log_level:  INFO    # DEBUG | INFO | WARNING | ERROR
+log_file:           # Path to write logs to. Blank = stderr only.
+                    # e.g. /var/log/ssh-guard.log

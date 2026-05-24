@@ -1,0 +1,31 @@
+[Unit]
+Description=SSH Guard — SSH brute force detector and auto-blocker
+Documentation=https://github.com/YOUR_USERNAME/ssh-guard
+After=network.target auditd.service
+Wants=network.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+
+# Edit this path to wherever you cloned the repo
+WorkingDirectory=/opt/ssh-guard
+ExecStart=/opt/ssh-guard/venv/bin/python ssh_guard.py --config /etc/ssh-guard/config.yaml start
+Restart=on-failure
+RestartSec=5
+
+# Logging — stdout goes to journald (journalctl -u ssh-guard -f)
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=ssh-guard
+
+# Hardening
+PrivateTmp=true
+NoNewPrivileges=false
+ProtectSystem=strict
+ReadWritePaths=/var/lib/ssh-guard /var/log
+ReadOnlyPaths=/var/log/auth.log /var/log/secure /etc/ssh-guard
+
+[Install]
+WantedBy=multi-user.target
