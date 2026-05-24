@@ -35,7 +35,10 @@ class LogEvent:
 
 # May 24 14:22:01 hostname sshd[12345]: ...
 _TS_RE = re.compile(
-    r"^(\w{3}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2})"
+    r"^(\w{3}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2})"  # classic syslog: May 24 11:45:07
+)
+_TS_ISO_RE = re.compile(
+    r"^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})"   # ISO 8601: 2026-05-24T11:45:07
 )
 
 # "Failed password for root from 1.2.3.4 port 54321 ssh2"
@@ -65,13 +68,17 @@ _TS_FMT = "%b %d %H:%M:%S"
 
 
 def _parse_ts(raw_ts: str) -> datetime:
+    # Try ISO 8601 first (Ubuntu 22.04+)
     try:
-        # Strip extra spaces that syslog adds for single-digit days
+        return datetime.fromisoformat(raw_ts)
+    except ValueError:
+        pass
+    # Fall back to classic syslog format
+    try:
         dt = datetime.strptime(raw_ts.strip(), _TS_FMT)
         return dt.replace(year=datetime.now().year)
     except ValueError:
         return datetime.now()
-
 
 def parse_line(line: str) -> Optional[LogEvent]:
     """
@@ -83,7 +90,7 @@ def parse_line(line: str) -> Optional[LogEvent]:
         return None
 
     # Parse timestamp
-    ts_match = _TS_RE.match(line)
+    ts_match = _TS_ISO_RE.match(line) or _TS_RE.match(line)
     ts = _parse_ts(ts_match.group(1)) if ts_match else datetime.now()
 
     # Try each pattern
