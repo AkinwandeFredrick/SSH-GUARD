@@ -51,7 +51,7 @@ _INVALID_USER = re.compile(
 
 # "Connection closed by authenticating user foo 1.2.3.4 port 54321 [preauth]"
 _CONN_CLOSED = re.compile(
-    r"Connection closed by (?:authenticating user )?(\S+) ([\d\.a-fA-F:]+) port (\d+)"
+    r"Connection closed by (?:authenticating user |invalid user )?(\S+) ([\d\.a-fA-F:]+) port (\d+)"
 )
 
 # "Accepted password for foo from 1.2.3.4 port 54321 ssh2"
@@ -79,7 +79,7 @@ def parse_line(line: str) -> Optional[LogEvent]:
     Works with both Debian (/var/log/auth.log) and RHEL (/var/log/secure)
     syslog formats.
     """
-    if "sshd" not in line:
+    if "sshd" not in line and "sshd-session" not in line:
         return None
 
     # Parse timestamp
